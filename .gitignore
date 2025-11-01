@@ -1,0 +1,96 @@
+# ===================================================================
+# General Python & Editor Files
+# ===================================================================
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class*
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# VS Code specific
+.vscode/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# ===================================================================
+# Project Specific Files
+# ===================================================================
+# Conda/Venv virtual environments (if created inside the project)
+/green_ai_env/
+/.venv/
+
+# Large dataset files downloaded by Hugging Face datasets library
+*.arrow
+*.parquet
+
+# Weights & Biases local logs and artifacts
+/wandb/
+/.wandb/
+
+# Generated results folders, which contain large model files
+# We ignore all result folders by default
+/results/
+/results_baseline/
+/results_l1_norm/
+/results_l1_norm_classic/
+/results_final_run/
+
+# --- IMPORTANT EXCEPTIONS ---
+# We explicitly UN-ignore the final report files so they can be committed
+!/results_final_run/final_project_comparison_report.txt
+!/results_final_run/final_project_comparison_report.csv
+
+# Locally downloaded models from Hugging Face Hub (usually in ~/.cache/)
+# Add this as a precaution
+*.bin
+*.safetensors
+
+# Other logs or temporary files
+*.log
+New Text Document.txt
+=-.26.0
+=0.26.0
+
+# Miniconda installer
+Miniconda3-latest-Linux-x86_64.sh

@@ -1,0 +1,11 @@
+# requirements.txt
+transformers>=4.0
+datasets>=2.0
+scikit-learn>=1.0
+matplotlib>=3.0
+tqdm>=4.0
+thop>=0.1.1
+accelerate>=0.26.0
+torch-pruning==1.5.3
+wandb==0.21.0
+bitsandbytes==0.46.1
