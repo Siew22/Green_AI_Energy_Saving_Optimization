@@ -75,6 +75,8 @@ coverage.xml
 /results_l1_norm/
 /results_l1_norm_classic/
 /results_final_run/
+/results_baseline_final/
+/results_L1_final/
 
 # --- IMPORTANT EXCEPTIONS ---
 # We explicitly UN-ignore the final report files so they can be committed

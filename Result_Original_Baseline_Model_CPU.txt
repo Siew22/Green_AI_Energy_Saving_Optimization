@@ -1,0 +1,48 @@
+(green_ai_env) (.venv) ahseng_012345@LAPTOP-OJQT67EI:~/FYP Research$ python benchmark_cpu_final.py --model_path "none" --run_name "Original-Baseline-CPU" --use_raw_bert
+wandb: Currently logged in as: bcs24020043 (bcs24020043-university-of-technology-sarawak) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: Tracking run with wandb version 0.21.0
+wandb: Run data is saved locally in /home/ahseng_012345/FYP Research/wandb/run-20260124_231340-8cxw31k8
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run Original-Baseline-CPU
+wandb: ⭐️ View project at https://wandb.ai/bcs24020043-university-of-technology-sarawak/GreenAI-Optimization-FYP
+wandb: 🚀 View run at https://wandb.ai/bcs24020043-university-of-technology-sarawak/GreenAI-Optimization-FYP/runs/8cxw31k8
+
+========================================================
+   CPU BENCHMARK: Original-Baseline-CPU
+========================================================
+  - Loading RAW 'bert-base-uncased'...
+Some weights of BertForSequenceClassification were not initialized from the model checkpoint at bert-base-uncased and are newly initialized: ['classifier.bias', 'classifier.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+  - Model loaded and structured successfully on CPU.
+Estimating FLOPs with dummy input shape: torch.Size([1, 128])
+
+Performing manual evaluation on Accuracy-Original-Baseline-CPU...
+Accuracy-Original-Baseline-CPU: 100%|███████████████████████████████| 436/436 [01:00<00:00,  7.16it/s]
+  Accuracy-Original-Baseline-CPU Accuracy: 0.4908
+Speed Test: 100%|███████████████████████████████████████████████████| 436/436 [00:59<00:00,  7.33it/s]
+
+=================== FINAL RESULTS ===================
+Accuracy           : 0.4908
+Params (M)         : 85.65
+FLOPs (G)          : 10.88
+FPS                : 14.66
+=====================================================
+wandb:                                                                                
+wandb: 
+wandb: Run history:
+wandb:           accuracy ▁
+wandb:            flops_g ▁
+wandb:           params_m ▁
+wandb: samples_per_second ▁
+wandb: 
+wandb: Run summary:
+wandb:           accuracy 0.49083
+wandb:            flops_g 10.88206
+wandb:           params_m 85.64813
+wandb: samples_per_second 14.65774
+wandb: 
+wandb: 🚀 View run Original-Baseline-CPU at: https://wandb.ai/bcs24020043-university-of-technology-sarawak/GreenAI-Optimization-FYP/runs/8cxw31k8
+wandb: ⭐️ View project at: https://wandb.ai/bcs24020043-university-of-technology-sarawak/GreenAI-Optimization-FYP
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260124_231340-8cxw31k8/logs
+(green_ai_env) (.venv) ahseng_012345@LAPTOP-OJQT67EI:~/FYP Research$ 

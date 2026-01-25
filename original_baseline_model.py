@@ -1,140 +1,67 @@
-# original_baseline_model.py (Final Version with W&B Logging)
+# original_baseline_model.py
 import os
-import sys
 import torch
-import wandb  # <--- 在顶部添加 import
+import time
 from transformers import BertForSequenceClassification, BertTokenizerFast, TrainingArguments, Trainer
 from datasets import load_dataset
 from torch.utils.data import DataLoader
+# 确保函数名完全一致
+from utils_baseline import get_full_metrics_cpu, estimate_flops, MAX_SEQ_LENGTH
 
-# 确保可以从 utils.py 导入所有需要的函数
-try:
-    from utils import (
-        estimate_flops, 
-        measure_energy_and_speed,
-        filter_dataset_intelligently
-    )
-except ImportError:
-    print("Error: Could not import from utils.py. Make sure it's in the same directory.")
-    sys.exit(1)
-
-# --- Configuration ---
+# 配置
 MODEL_NAME = "bert-base-uncased"
-DATASET_NAME = "glue"
-TASK_NAME = "sst2"
-MAX_SEQ_LENGTH = 128
 DEVICE_BATCH_SIZE = 2
-EFFECTIVE_BATCH_SIZE = 4
-assert EFFECTIVE_BATCH_SIZE % DEVICE_BATCH_SIZE == 0
-GRADIENT_ACCUMULATION_STEPS = EFFECTIVE_BATCH_SIZE // DEVICE_BATCH_SIZE
-BASE_OUTPUT_DIR = "./results_baseline"
-NUM_EPOCHS_BASELINE = 3
-
-# 设置 W&B 项目名称
-os.environ["WANDB_PROJECT"] = "GreenAI-Optimization-Comparison"
+GRADIENT_ACCUMULATION_STEPS = 2
+NUM_EPOCHS = 3
+LEARNING_RATE = 2e-5
+OUTPUT_DIR = "./results_baseline_final"
 
 if __name__ == "__main__":
-    os.makedirs(BASE_OUTPUT_DIR, exist_ok=True)
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
     
-    # --- 1. Loading and Preparing Data ---
-    print("--- 1. Loading and Preparing Data ---")
-    dataset = load_dataset(DATASET_NAME, TASK_NAME)
+    # 1. 准备数据 (100% 原始数据)
+    print("--- 1. Loading 100% Original Dataset (NO FILTERING) ---")
+    dataset = load_dataset("glue", "sst2")
     tokenizer = BertTokenizerFast.from_pretrained(MODEL_NAME)
+    def tokenize_fn(e): return tokenizer(e["sentence"], padding="max_length", truncation=True, max_length=MAX_SEQ_LENGTH)
+    tokenized_ds = dataset.map(tokenize_fn, batched=True)
+    tokenized_ds.set_format('torch', columns=['input_ids', 'attention_mask', 'label', 'token_type_ids'])
 
-    def tokenize_function(examples):
-        return tokenizer(examples["sentence"], padding="max_length", truncation=True, max_length=MAX_SEQ_LENGTH)
-    
-    tokenized_datasets = dataset.map(tokenize_function, batched=True)
-    columns_to_keep = ["input_ids", "attention_mask", "label"]
-    if "token_type_ids" in tokenized_datasets["train"].features:
-        columns_to_keep.append("token_type_ids")
-    tokenized_datasets.set_format("torch", columns=columns_to_keep)
-
-    # 为了与主实验公平对比，使用验证集进行最终测量
-    validation_dataloader = DataLoader(tokenized_datasets["validation"], batch_size=DEVICE_BATCH_SIZE)
-
-    # --- 2. Loading and Fine-tuning Baseline Model ---
-    print("\n--- 2. Loading and Fine-tuning Baseline Model ---")
+    # 2. 加载模型并在 GPU 训练
+    print("\n--- 2. Fine-tuning Baseline Model on GPU ---")
     num_labels = dataset['train'].features['label'].num_classes
-    baseline_model = BertForSequenceClassification.from_pretrained(MODEL_NAME, num_labels=num_labels).cuda()
+    model = BertForSequenceClassification.from_pretrained(MODEL_NAME, num_labels=num_labels).cuda()
     
-    # --- Perform Intelligent Data Filtering ---
-    print("Applying intelligent data filtering...")
-    filtered_train_dataset = filter_dataset_intelligently(
-        model=baseline_model, 
-        tokenizer=tokenizer,
-        dataset=tokenized_datasets["train"],
-        keep_ratio=0.8,
-        batch_size=DEVICE_BATCH_SIZE,
-        device="cuda"
-    )
-
-    baseline_training_args = TrainingArguments(
-        output_dir=f"{BASE_OUTPUT_DIR}/checkpoints",
-        learning_rate=2e-5,
+    args = TrainingArguments(
+        output_dir=OUTPUT_DIR,
         per_device_train_batch_size=DEVICE_BATCH_SIZE,
         gradient_accumulation_steps=GRADIENT_ACCUMULATION_STEPS,
-        num_train_epochs=NUM_EPOCHS_BASELINE,
-        weight_decay=0.01,
-        save_strategy="epoch",
-        save_total_limit=1,
+        num_train_epochs=NUM_EPOCHS,
+        learning_rate=LEARNING_RATE,
         fp16=True,
-        report_to="wandb",
-        run_name="baseline-finetune-standalone", # 区分于主流程中的baseline
-        optim="adamw_bnb_8bit"
+        optim="adamw_torch",
+        # --- 加上下面这两行核心配置 ---
+        save_strategy="epoch",    # 每运行完一个 epoch 存一次
+        save_total_limit=1,       # 【最重要】只保留最新的一份，旧的会自动删除
+        report_to="wandb"
     )
 
-    trainer = Trainer(
-        model=baseline_model,
-        args=baseline_training_args,
-        train_dataset=filtered_train_dataset
-    )
-    
-    print("Starting baseline training...")
+    trainer = Trainer(model=model, args=args, train_dataset=tokenized_ds["train"])
     trainer.train()
-    
-    final_baseline_save_path = f"{BASE_OUTPUT_DIR}/fine_tuned_model"
-    trainer.save_model(final_baseline_save_path)
-    print(f"Fine-tuned baseline model saved to {final_baseline_save_path}")
 
-    # --- 3. Measuring Baseline Model Performance ---
-    print("\n--- 3. Measuring Baseline Model Performance ---")
-    model_for_measurement = BertForSequenceClassification.from_pretrained(final_baseline_save_path).cuda()
+    # 3. 切换到 CPU 进行最终测量
+    print("\n--- 3. Performing Full Metrics Benchmarking on CPU ---")
+    val_loader = DataLoader(tokenized_ds["validation"], batch_size=DEVICE_BATCH_SIZE)
     
-    flops, params = estimate_flops(model_for_measurement, MAX_SEQ_LENGTH)
-    measurement_metrics = measure_energy_and_speed(model_for_measurement, validation_dataloader, "Baseline Model (Validation Set)")
-    
-    # --- 4. Final Reporting and Logging ---
-    print("\n--- 4. Final Reporting and Logging ---")
-    
-    final_results = {
-        "accuracy": measurement_metrics.get('accuracy'),
-        "parameters_M": params / 1e6,
-        "flops_G": flops / 1e9,
-        "fps": measurement_metrics.get('samples_per_second'),
-        "energy_per_sample_uWh": measurement_metrics.get('energy_per_sample_uWh'),
-        "avg_gpu_power_W": measurement_metrics.get('avg_gpu_power_W'),
-    }
+    # 调用一致的函数名
+    results = get_full_metrics_cpu(model, val_loader)
 
-    print("\n--- BASELINE MODEL RESULTS ---")
-    for key, value in final_results.items():
-        if value is not None:
-            print(f"  - {key.replace('_', ' ').title()}: {value:,.4f}")
-        else:
-            print(f"  - {key.replace('_', ' ').title()}: N/A")
-    print("-" * 30)
-
-    print("\nLogging baseline results to W&B...")
-    try:
-        run = wandb.init(
-            project=os.environ["WANDB_PROJECT"], 
-            name="baseline-standalone-measurement", 
-            job_type="measurement",
-            reinit=True
-        )
-        run.summary.update(final_results)
-        run.finish()
-        print("✅ Successfully logged baseline results to W&B.")
-        print(f"  - Find your run at: {run.url}")
-    except Exception as e:
-        print(f"\n❌ Could not log to W&B. Error: {e}")
+    # 4. 打印最终结果表 (直接拿去填论文)
+    print("\n" + "="*45)
+    print(" FINAL RESULTS: ORIGINAL BASELINE (CPU) ")
+    print("="*45)
+    print(f" Accuracy:           {results['accuracy']:.4f}")
+    print(f" Params_M (M):       {results['params_m']:.2f}")
+    print(f" FLOPs_G (G):        {results['flops_g']:.2f}")
+    print(f" Samples/sec (FPS):  {results['fps']:.2f}")
+    print("="*45)
