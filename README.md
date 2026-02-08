@@ -1,119 +1,86 @@
-# Green AI Energy-Saving Optimization Framework
-
- <!-- 您可以在这里放一张自己设计的项目横幅图片 -->
-
-An end-to-end framework for Green AI optimization, featuring a novel Energy-Aware Pruning algorithm and Quantization-Aware Training (QAT) to create smaller, faster, and more accurate BERT models for both GPU and CPU. This project was developed as part of a Final Year Project at the University of Technology Sarawak (UTS).
+# FYP2 FINAL SUBMISSION: INTEGRATED MODEL OPTIMIZATION FRAMEWORK
+**Author:** Chiu Siew Seng
+**Theme:** Model Compression, Computational Efficiency, and CPU Deployment.
 
 ---
 
-## 🌟 Core Idea: Beyond "Red AI"
-
-The era of "Red AI," pursuing performance at any computational cost, is reaching its sustainability limits. This project embraces the "Green AI" paradigm, demonstrating that model efficiency and performance are not mutually exclusive. Our framework systematically optimizes a pre-trained BERT model, proving that it's possible to achieve significant efficiency gains—in model size, speed, and energy consumption—while simultaneously maintaining or even **improving** model accuracy.
-
-## ✨ Key Features
-
-- **🧠 Intelligent Data Filtering**: Utilizes model uncertainty (entropy) to select a high-value training subset, reducing overall training time and energy consumption.
-- **⚡ Energy-Aware Structural Pruning**: A novel pruning algorithm that scores and removes redundant components (attention heads, neurons) based on a weighted combination of their importance (L1-norm) and computational cost (FLOPs).
-- **💪 Quantization-Aware Training (QAT)**: Further compresses the pruned model and optimizes it for high-performance inference on standard **CPU hardware**, breaking the dependency on expensive GPUs.
-- **🔬 Comprehensive & Reproducible Pipeline**: Fully automated scripts to run the baseline, L1-norm comparison, and the proposed energy-aware optimization from end to end.
-
-## 📊 Final Results: A Comprehensive Win
-
-Our framework was evaluated against a standard fine-tuned baseline and a model optimized with traditional L1-norm pruning. The results highlight a multi-faceted success:
-
-| Metric | 1. Baseline (GPU) | 2. L1-Norm Pruned (GPU) | 3. Energy-Aware Pruned (GPU) | 4. Final Model (CPU) |
-| :--- | :--- | :--- | :--- | :--- |
-| **Accuracy** | 0.9174 | 0.9140 (`-0.4%`) | **0.9255 (`+0.9%`)** | **0.9220 (`+0.5%`)** |
-| **Params (M)** | 109.48 | 87.59 (`-20%`) | 87.59 (`-20%`) | 87.59 (`-20%`) |
-| **FLOPs (G)** | 22.43 | 17.94 (`-20%`) | 17.94 (`-20%`) | 17.94 (`-20%`) |
-| **FPS (Samples/s)**| 99.43 | **189.10 (`+90%`)**| 182.35 (`+83%`) | 11.60 |
-| **Energy/Sample (uWh)**| 153.36 | **50.39 (`-67%`)**| 102.20 (`-33%`) | N/A |
-
-### Key Takeaways:
-1.  **Superior Performance**: The Energy-Aware Pruning algorithm **outperformed** traditional L1-norm pruning in accuracy, demonstrating its ability to better preserve model knowledge.
-2.  **Hardware Accessibility**: The final quantized model achieves a **higher accuracy than the original baseline** while running on a standard **CPU**, successfully breaking the dependency on specialized GPU hardware.
-3.  **Efficiency Gains**: The pruning methods delivered massive improvements in GPU throughput (up to **+90% FPS**) and energy efficiency (up to **-67% energy/sample**).
+## 1. ABSTRACT (The "High-Level" Summary)
+This project addresses the computational challenges of deploying Large Language Models (LLMs) on standard hardware. As models scale, they face "Computational Bloat," characterized by massive parameter counts and high Floating Point Operations (FLOPs). This creates a "Memory Wall" bottleneck, rendering models like BERT impractical for inference on consumer-grade CPUs. This research introduces an **Integrated Optimization Framework** comprising three synergistic techniques: **Intelligent Data Filtering**, a **Modified Cost-Aware Structural Pruning Algorithm**, and **Quantization-Aware Training (QAT)**. The optimization pipeline leverages GPU acceleration during training to produce a lightweight model specifically optimized for CPU deployment. Results demonstrate that the framework reduces theoretical FLOPs by 20% and achieves a functionally viable inference speed of **11.60 FPS** on a standard CPU. Crucially, the optimized model maintains a predictive accuracy of **92.20%**, surpassing the baseline. This study confirms that a holistic optimization strategy can effectively decouple high-performance inference from high-end hardware dependencies.
 
 ---
 
-## 🛠️ Getting Started: Installation and Setup
+## 2. CHAPTER 1: INTRODUCTION REVISIONS
 
-This project uses `conda` for environment management.
+### 1.2 Problem Statement
+"The primary challenge is the **Computational Bloat** of LLMs, which creates a **Hardware Gap**. Standard BERT models require high-VRAM GPUs, making them unusable on standard consumer-grade CPUs due to the **Memory Wall** bottleneck. This leads to prohibitive inference latency or Out-of-Memory (OOM) errors. Furthermore, traditional magnitude-based optimization often leads to accuracy degradation, failing to maintain a balance between speed and intelligence."
 
-1.  **Clone the repository:**
-    ```bash
-    git clone https://github.com/Siew22/Green_AI_Energy_Saving_Optimization.git
-    cd Green_AI_Energy_Saving_Optimization
-    ```
-
-2.  **Create and activate the Conda environment:**
-    ```bash
-    # Create the environment with Python 3.10
-    conda create -n green_ai_env python=3.10 -y
-    conda activate green_ai_env
-    ```
-
-3.  **Install PyTorch with CUDA:**
-    (This command is for CUDA 12.1. Please visit the PyTorch website for the command matching your system.)
-    ```bash
-    conda install pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia -y
-    ```
-
-4.  **Install remaining dependencies:**
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-5.  **(Optional) Login to Weights & Biases:**
-    To log results to your W&B dashboard.
-    ```bash
-    wandb login
-    ```
+### 1.3 Objectives (Revised to Point Form)
+The objectives of this project are listed as follows:
+1.  **To design** an Integrated Optimization Framework that systematically combines data filtering, structural pruning, and quantization into a unified pipeline.
+2.  **To develop** a Modified Cost-Aware Structural Pruning Algorithm that prioritizes structural units based on a balance of functional importance and computational cost (FLOPs).
+3.  **To evaluate** and compare the performance of the optimized model against unoptimized and traditional benchmarks on standard CPU hardware to validate deployment viability.
 
 ---
 
-## 🚀 How to Run the Experiments
+## 3. CHAPTER 2: LITERATURE & THEORETICAL GROUNDING
 
-The project is structured into several executable scripts for clear, reproducible experiments.
+### 2.3.1 Structural Pruning Logic
+"While Han et al. (2015) established weight pruning as a standard, their unstructured approach creates sparse matrices that are incompatible with modern dense processors. This research adopts **Structural Pruning** to remove entire attention heads. Unlike traditional L1-Norm methods, we introduce a **Cost-Aware** scoring function (Equation 2.1) to penalize units with high computational costs."
 
-### 1. Run the Main End-to-End Pipeline (Your Method)
+**Table 2.1: Computational Complexity of Layer Types**
+*(Note: Place Table Caption ABOVE the table)*
 
-This script will execute the full, multi-stage optimization process using the Energy-Aware algorithm.
-> **Note**: This is a very long process involving multiple training sessions.
+**Equation 2.1: Modified Cost-Aware Scoring Function**
+$$Score(u) = \frac{Importance(L1\_Norm)}{(FLOPs\_Reduction)^\alpha} \quad\quad\quad (2.1)$$
+*Explanation: The numerator represents functional importance, while the denominator acts as a computational penalty to maximize the efficiency-to-accuracy ratio.*
 
-```bash
-python main_research_scripts.py
-```
-After this script completes, it will guide you to run the next step.
+---
 
-### 2. Run the Final Measurement & Reporting
+## 4. CHAPTER 3: METHODOLOGY (Synergy Rationale)
 
-This script loads the artifacts generated by the main pipeline, validates the final model, and generates the comparison reports.
-```bash
-# Run this after main_research_scripts.py completes
-python run_stage5_only.py
+### 3.3 Rationale for Framework Synergy
+"Applying quantization directly to a dense model preserves redundant parameters ('noise'). By applying **Structural Pruning first**, the framework removes these redundant neurons, acting as a form of **Regularization (Han et al., 2015)**. This results in a 'cleaner' architecture that is significantly more robust against the precision loss inherent in the subsequent **QAT stage (Jacob et al., 2018)**."
 
-# To generate/update the final report with all experiment data
-python generate_report.py
-```
+---
 
-### 3. Run the Comparative Experiments
+## 5. CHAPTER 4: RESULTS AND DISCUSSION (The "Final Battle")
 
-To reproduce the benchmark results, run the following scripts independently.
+### 4.2 Comprehensive Benchmarking Results
+**Table 4.2.1: Comparative Analysis of Optimization Strategies (CPU Inference)**
 
--   **Generate the Baseline Model:**
-    ```bash
-    python original_baseline_model.py
-    ```
--   **Run the Traditional L1-Norm Pruning Pipeline:**
-    ```bash
-    python traditional_L1_norm.py
-    ```
+| Metric | Original Baseline | Traditional L1-Norm | **Proposed Framework (Ours)** |
+| :--- | :--- | :--- | :--- |
+| **Model Size (MB)** | 418 MB | 374 MB | **176 MB (Smallest)** |
+| **Accuracy (%)** | 91.97% | 91.74% | **92.20% (Highest)** |
+| **FLOPs (G)** | 10.88 G | 9.43 G | **8.71 G (Lowest)** |
+| **Inference FPS** | 14.14 | **16.99 (Fastest)** | 11.60 (Viable) |
 
-## 🙏 Acknowledgements
+### 4.4 Critical Analysis of Results
+1.  **Why Ours is More Accurate:** The L1-Norm method prunes purely based on weight size, often causing 'brain damage' to critical nodes. Our **Modified Cost-Aware** method selectively removes noise, improving generalization.
+2.  **Why the FPS Trade-off is Worth it:** While the L1-Norm is faster (16.99 FPS) because it is pure FP32, our model (11.60 FPS) achieves **extreme storage efficiency (176MB)** and **highest accuracy**. The 11.60 FPS is functionally viable for CPU deployment, whereas the Baseline is limited by the **Memory Wall (Gholami et al., 2021)**.
 
-I would like to express my sincere gratitude to my supervisor, Dr. Michael Tang Chi Seng, and co-supervisor, Ts. Dr. Gary Loh Chee Wyai, from the School of Computing and Creative Media at the University of Technology Sarawak (UTS) for their invaluable guidance and support throughout this project.
+---
 
-## 📄 License
+## 6. CHAPTER 5: CONCLUSION, LIMITATIONS & FUTURE WORK
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+### 5.1 Conclusion
+"This research proves that high-performance BERT inference is feasible on consumer-grade CPUs. The framework achieves an optimal balance, delivering the **highest accuracy in the smallest storage footprint**. We successfully decoupled model performance from high-end hardware dependencies."
+
+### 5.2 Limitations
+1.  **Inferred Efficiency:** CPU power usage was inferred via FPS rather than direct hardware sensors.
+2.  **Hyperparameter Selection:** The balancing factor ($\alpha$) was set manually at 0.1 based on heuristic values.
+
+### 5.3 Future Works
+1.  **Advanced Heuristics:** Exploring second-order information like **Optimal Brain Surgeon (LeCun et al., 1989)**.
+2.  **Automatic Tuning:** Implementing **Bayesian Optimization (Snoek et al., 2012)** for automated hyperparameter search.
+3.  **Generalizability:** Extending the framework to **Vision Transformers (ViT) (Dosovitskiy et al., 2020)**.
+
+---
+
+## 7. CORRECTED REFERENCE LIST (Official Versions)
+1. **Devlin, J., et al. (2019).** BERT: Pre-training of Deep Bidirectional Transformers. *Proceedings of NAACL-HLT*.
+2. **Han, S., et al. (2015).** Learning both weights and connections for efficient neural networks. *NeurIPS*.
+3. **Jacob, B., et al. (2018).** Quantization and Training of Neural Networks. *Proceedings of CVPR*.
+4. **Gholami, A., et al. (2021).** AI and Memory Wall. *IEEE Micro*.
+5. **LeCun, Y., et al. (1989).** Optimal Brain Damage. *NeurIPS*.
+6. **Dosovitskiy, A., et al. (2020).** An Image is Worth 16x16 Words (ViT). *ICLR*.
